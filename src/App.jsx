@@ -1,6 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useTonConnectUI, useTonWallet } from "@tonconnect/ui-react";
 import ucIcon from "./assets/uc-icon.png";
+
+const TON_PRICE_API =
+  "https://api.coingecko.com/api/v3/simple/price?ids=the-open-network&vs_currencies=usd";
+const FALLBACK_TON_USD = 5;
 
 function TelegramIcon() {
   return (
@@ -189,6 +193,23 @@ export default function App() {
   const [checkoutMessage, setCheckoutMessage] = useState("");
   const [cryptoComingSoonVisible, setCryptoComingSoonVisible] = useState(false);
   const [showTonFallback, setShowTonFallback] = useState(false);
+  const [tonUsdRate, setTonUsdRate] = useState(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch(TON_PRICE_API)
+      .then((res) => res.json())
+      .then((data) => {
+        if (cancelled) return;
+        const usd = data?.["the-open-network"]?.usd;
+        if (typeof usd === "number" && usd > 0) setTonUsdRate(usd);
+      })
+      .catch(() => {});
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const [tonConnectUI] = useTonConnectUI({
     manifestUrl: "https://puncher-shop.vercel.app/tonconnect-manifest.json",
@@ -255,13 +276,23 @@ export default function App() {
     return usd;
   }
 
+  function getTonUsdRate() {
+    return tonUsdRate ?? FALLBACK_TON_USD;
+  }
+
+  function getOrderTotalTON() {
+    const usd = getOrderTotalUSD();
+    if (usd <= 0) return 0;
+    const ton = usd / getTonUsdRate();
+    return Math.round(ton * 10000) / 10000;
+  }
+
   function handleTelegramWalletPayment() {
     const comment = `PUNCHER SHOP | ${selectedProduct.name} | PUBG ID: ${
       pubgID || "—"
     }`;
 
-    const orderTotalUSD = getOrderTotalUSD();
-    const orderAmountTon = orderTotalUSD || 0;
+    const orderAmountTon = getOrderTotalTON();
 
     if (!wallet) {
       tonConnectUI.openModal();
@@ -274,7 +305,7 @@ export default function App() {
     try {
       const amountNano =
         orderAmountTon > 0
-          ? BigInt(Math.round(orderAmountTon * 1_000_000_000)).toString()
+          ? BigInt(Math.round(orderAmountTon * 1e9)).toString()
           : undefined;
 
       const tx = {
@@ -1163,7 +1194,7 @@ export default function App() {
 
 Package: ${selectedProduct.name}
 Price: ${getPrice(selectedProduct)}
-Currency: ${currency}
+${payment === "CRYPTO" ? `Pay in TON: ${getOrderTotalTON()} TON\n` : ""}Currency: ${currency}
 Payment: ${paymentLabel}
 
 PUBG ID: ${pubgID || "—"}
