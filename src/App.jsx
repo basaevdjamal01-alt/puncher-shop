@@ -1,6 +1,4 @@
 import { useState } from "react";
-import { useTonConnectUI, useTonWallet } from "@tonconnect/ui-react";
-import { beginCell } from "@ton/core";
 import ucIcon from "./assets/uc-icon.png";
 
 function TelegramIcon() {
@@ -21,8 +19,6 @@ function TelegramIcon() {
 }
 
 export default function App() {
-  const [tonConnectUI] = useTonConnectUI();
-  const wallet = useTonWallet();
   const products = [
     {
       id: 1,
@@ -253,20 +249,6 @@ export default function App() {
     return usd;
   }
 
-  function bytesToBase64(bytes) {
-    let binary = "";
-    bytes.forEach((b) => {
-      binary += String.fromCharCode(b);
-    });
-    return btoa(binary);
-  }
-
-  function buildTonCommentPayloadBase64(comment) {
-    const cell = beginCell().storeUint(0, 32).storeStringTail(comment).endCell();
-    const boc = cell.toBoc({ idx: false });
-    return bytesToBase64(boc);
-  }
-
   function handleTelegramWalletPayment() {
     const orderTotalUSD = getOrderTotalUSD();
     if (!orderTotalUSD) {
@@ -274,55 +256,14 @@ export default function App() {
       return;
     }
 
-    const tonAmount = orderTotalUSD / 5;
-    const nanoTonAmount = Math.round(tonAmount * 1_000_000_000);
     const comment = `PUNCHER SHOP — ${selectedProduct.name} — ${getPrice(
       selectedProduct
     )}`;
 
-    const isTelegramMiniApp =
-      typeof window !== "undefined" &&
-      typeof window.Telegram !== "undefined" &&
-      typeof window.Telegram.WebApp !== "undefined";
-
-    if (!isTelegramMiniApp) {
-      setShowTonFallback(true);
-      setCheckoutMessage(
-        "TON Connect доступен только внутри Telegram Mini App. Пожалуйста, открой магазин в Telegram."
-      );
-      return;
-    }
-
-    if (!wallet) {
-      tonConnectUI.openModal();
-      setCheckoutMessage("Подключи Telegram Wallet через TON Connect, затем нажми ещё раз.");
-      return;
-    }
-
-    const tx = {
-      validUntil: Math.floor(Date.now() / 1000) + 300,
-      messages: [
-        {
-          address: TON_WALLET_ADDRESS,
-          amount: nanoTonAmount.toString(),
-          payload: buildTonCommentPayloadBase64(comment),
-        },
-      ],
-    };
-
-    tonConnectUI
-      .sendTransaction(tx)
-      .then(() => {
-        setCheckoutMessage(
-          `Запрос на оплату отправлен в Telegram Wallet.\nКомментарий платежа: ${comment}`
-        );
-      })
-      .catch((error) => {
-        console.error("TON Connect payment error", error);
-        setCheckoutMessage(
-          "Не удалось отправить транзакцию через TON Connect. Попробуй ещё раз или используй оплату картой."
-        );
-      });
+    setShowTonFallback(true);
+    setCheckoutMessage(
+      `Открой Telegram Wallet, отправь перевод на TON кошелёк ниже и укажи комментарий:\n\n${comment}`
+    );
   }
 
   const styles = {
