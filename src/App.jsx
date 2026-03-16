@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useTonConnectUI, useTonWallet } from "@tonconnect/ui-react";
+import { beginCell } from "@ton/core";
 import ucIcon from "./assets/uc-icon.png";
 
 function TelegramIcon() {
@@ -245,18 +246,25 @@ export default function App() {
     );
   }
 
-  function showCryptoComingSoon() {
-    setCryptoComingSoonVisible(true);
-    setTimeout(() => {
-      setCryptoComingSoonVisible(false);
-    }, 3500);
-  }
-
   function getOrderTotalUSD() {
     const usdPriceString = selectedProduct.priceUSD.replace("$", "");
     const usd = parseFloat(usdPriceString);
     if (Number.isNaN(usd)) return 0;
     return usd;
+  }
+
+  function bytesToBase64(bytes) {
+    let binary = "";
+    bytes.forEach((b) => {
+      binary += String.fromCharCode(b);
+    });
+    return btoa(binary);
+  }
+
+  function buildTonCommentPayloadBase64(comment) {
+    const cell = beginCell().storeUint(0, 32).storeStringTail(comment).endCell();
+    const boc = cell.toBoc({ idx: false });
+    return bytesToBase64(boc);
   }
 
   function handleTelegramWalletPayment() {
@@ -277,19 +285,17 @@ export default function App() {
       typeof window.Telegram !== "undefined" &&
       typeof window.Telegram.WebApp !== "undefined";
 
-    if (!isTelegramMiniApp || !wallet) {
-      if (!isTelegramMiniApp) {
-        setShowTonFallback(true);
-        setCheckoutMessage(
-          "TON Connect доступен только внутри Telegram Mini App. Пожалуйста, открой магазин в Telegram."
-        );
-        return;
-      }
-
-      tonConnectUI.openModal();
+    if (!isTelegramMiniApp) {
+      setShowTonFallback(true);
       setCheckoutMessage(
-        "Подключи Telegram Wallet через TON Connect, затем повтори попытку оплаты."
+        "TON Connect доступен только внутри Telegram Mini App. Пожалуйста, открой магазин в Telegram."
       );
+      return;
+    }
+
+    if (!wallet) {
+      tonConnectUI.openModal();
+      setCheckoutMessage("Подключи Telegram Wallet через TON Connect, затем нажми ещё раз.");
       return;
     }
 
@@ -299,6 +305,7 @@ export default function App() {
         {
           address: TON_WALLET_ADDRESS,
           amount: nanoTonAmount.toString(),
+          payload: buildTonCommentPayloadBase64(comment),
         },
       ],
     };
@@ -533,9 +540,10 @@ export default function App() {
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
-      fontSize: 10,
+      fontSize: 11,
       lineHeight: 1,
-      opacity: 0.8,
+      opacity: 0.55,
+      filter: "grayscale(1) saturate(0.45) brightness(1.1)",
     },
     heroStatLabel: {
       fontSize: 9,
@@ -991,7 +999,6 @@ export default function App() {
       fontSize: 12,
     },
     telegramWalletBtn: {
-      border: "none",
       width: "100%",
       marginTop: 8,
       borderRadius: 14,
