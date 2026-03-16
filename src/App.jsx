@@ -222,6 +222,11 @@ export default function App() {
   function handleOrder() {
     if (!validateOrderFields()) return;
 
+    if (payment === "CRYPTO") {
+      handleTelegramWalletPayment();
+      return;
+    }
+
     setShowCheckout(true);
     setCheckoutMessage("");
     setTimeout(() => {
@@ -254,43 +259,63 @@ export default function App() {
     return usd;
   }
 
-  async function handleTelegramWalletPayment() {
+  function handleTelegramWalletPayment() {
     const orderTotalUSD = getOrderTotalUSD();
     if (!orderTotalUSD) {
       setCheckoutMessage("Не удалось определить сумму заказа для TON оплаты.");
       return;
     }
 
-    try {
-      if (!wallet) {
-        await tonConnectUI.connectWallet();
+    const tonAmount = orderTotalUSD / 5;
+    const nanoTonAmount = Math.round(tonAmount * 1_000_000_000);
+    const comment = `PUNCHER SHOP — ${selectedProduct.name} — ${getPrice(
+      selectedProduct
+    )}`;
+
+    const isTelegramMiniApp =
+      typeof window !== "undefined" &&
+      typeof window.Telegram !== "undefined" &&
+      typeof window.Telegram.WebApp !== "undefined";
+
+    if (!isTelegramMiniApp || !wallet) {
+      if (!isTelegramMiniApp) {
+        setShowTonFallback(true);
+        setCheckoutMessage(
+          "TON Connect доступен только внутри Telegram Mini App. Пожалуйста, открой магазин в Telegram."
+        );
+        return;
       }
 
-      const tonAmount = orderTotalUSD / 5;
-      const nanoTonAmount = BigInt(Math.round(tonAmount * 1_000_000_000));
-
-      await tonConnectUI.sendTransaction({
-        validUntil: Math.floor(Date.now() / 1000) + 600,
-        messages: [
-          {
-            address: TON_WALLET_ADDRESS,
-            amount: nanoTonAmount.toString(),
-            payload: undefined,
-          },
-        ],
-        stateInit: undefined,
-      });
-
+      tonConnectUI.openModal();
       setCheckoutMessage(
-        "Заявка на оплату через Telegram Wallet отправлена. Проверь кошелёк в Telegram."
+        "Подключи Telegram Wallet через TON Connect, затем повтори попытку оплаты."
       );
-    } catch (error) {
-      console.error(error);
-      setCheckoutMessage(
-        "TON Connect недоступен или произошла ошибка. Можно оплатить вручную по адресу ниже."
-      );
-      setShowTonFallback(true);
+      return;
     }
+
+    const tx = {
+      validUntil: Math.floor(Date.now() / 1000) + 300,
+      messages: [
+        {
+          address: TON_WALLET_ADDRESS,
+          amount: nanoTonAmount.toString(),
+        },
+      ],
+    };
+
+    tonConnectUI
+      .sendTransaction(tx)
+      .then(() => {
+        setCheckoutMessage(
+          `Запрос на оплату отправлен в Telegram Wallet.\nКомментарий платежа: ${comment}`
+        );
+      })
+      .catch((error) => {
+        console.error("TON Connect payment error", error);
+        setCheckoutMessage(
+          "Не удалось отправить транзакцию через TON Connect. Попробуй ещё раз или используй оплату картой."
+        );
+      });
   }
 
   const styles = {
@@ -1156,7 +1181,7 @@ export default function App() {
 Package: ${selectedProduct.name}
 Price: ${getPrice(selectedProduct)}
 Currency: ${currency}
-Payment: ${payment}
+Payment: ${paymentLabel}
 
 PUBG ID: ${pubgID || "—"}
 Nickname: ${nickname || "—"}
@@ -1424,7 +1449,7 @@ Contact: ${contact || "—"}`;
             </div>
           </section>
 
-          {showCheckout ? (
+          {showCheckout && payment === "CARD" ? (
             <section id="checkout-block" style={styles.checkoutWrap}>
               <div style={styles.checkoutInner}>
                 <div style={styles.checkoutHeaderRow}>
@@ -1476,20 +1501,6 @@ Contact: ${contact || "—"}`;
                       onClick={handleFakePayment}
                     >
                       Оплатить (демо)
-                    </button>
-
-                    <button
-                      type="button"
-                      className="hover-lift"
-                      style={styles.telegramWalletBtn}
-                      onClick={handleTelegramWalletPayment}
-                    >
-                      <span style={styles.telegramWalletIcon}>
-                        <TelegramIcon />
-                      </span>
-                      <span style={styles.telegramWalletText}>
-                        Telegram Wallet
-                      </span>
                     </button>
                   </div>
 
