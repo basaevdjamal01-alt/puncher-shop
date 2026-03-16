@@ -7,7 +7,7 @@ import { TonConnectUIProvider } from '@tonconnect/ui-react'
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <TonConnectUIProvider
-      manifestUrl="https://puncher-shop-miniapp-ton-manifest.vercel.app/tonconnect-manifest.json"
+      manifestUrl="https://puncher-shop.vercel.app/tonconnect-manifest.json"
     >
       <App />
     </TonConnectUIProvider>

@@ -190,7 +190,9 @@ export default function App() {
   const [cryptoComingSoonVisible, setCryptoComingSoonVisible] = useState(false);
   const [showTonFallback, setShowTonFallback] = useState(false);
 
-  const [tonConnectUI] = useTonConnectUI();
+  const [tonConnectUI] = useTonConnectUI({
+    manifestUrl: "https://puncher-shop.vercel.app/tonconnect-manifest.json",
+  });
   const wallet = useTonWallet();
 
   const TON_WALLET_ADDRESS =
