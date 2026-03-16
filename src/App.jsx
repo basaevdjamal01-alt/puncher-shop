@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTonConnectUI, useTonWallet } from "@tonconnect/ui-react";
 import ucIcon from "./assets/uc-icon.png";
 
 function TelegramIcon() {
@@ -189,6 +190,9 @@ export default function App() {
   const [cryptoComingSoonVisible, setCryptoComingSoonVisible] = useState(false);
   const [showTonFallback, setShowTonFallback] = useState(false);
 
+  const [tonConnectUI] = useTonConnectUI();
+  const wallet = useTonWallet();
+
   const TON_WALLET_ADDRESS =
     "UQBvFUojlLTecFwQJ_zcprvBU7sS1v2FeTVYr0OTIygvik6L";
 
@@ -257,17 +261,7 @@ export default function App() {
     const orderTotalUSD = getOrderTotalUSD();
     const orderAmountTon = orderTotalUSD || 0;
 
-    const tonConnectUI = typeof window !== "undefined" ? window.tonConnectUI : null;
-
-    if (!tonConnectUI) {
-      setShowTonFallback(true);
-      setCheckoutMessage(
-        `TON Connect недоступен. Открой Telegram Wallet, отправь перевод на TON кошелёк ниже и укажи комментарий:\n\n${comment}`
-      );
-      return;
-    }
-
-    if (!tonConnectUI.connected) {
+    if (!wallet) {
       tonConnectUI.openModal();
       setCheckoutMessage(
         "Подключи Telegram Wallet через TON Connect, затем повторно нажми «Перейти к оплате»."
