@@ -250,20 +250,59 @@ export default function App() {
   }
 
   function handleTelegramWalletPayment() {
+    const comment = `PUNCHER SHOP | ${selectedProduct.name} | PUBG ID: ${
+      pubgID || "—"
+    }`;
+
     const orderTotalUSD = getOrderTotalUSD();
-    if (!orderTotalUSD) {
-      setCheckoutMessage("Не удалось определить сумму заказа для TON оплаты.");
+    const orderAmountTon = orderTotalUSD || 0;
+
+    const tonConnectUI = typeof window !== "undefined" ? window.tonConnectUI : null;
+
+    if (!tonConnectUI) {
+      setShowTonFallback(true);
+      setCheckoutMessage(
+        `TON Connect недоступен. Открой Telegram Wallet, отправь перевод на TON кошелёк ниже и укажи комментарий:\n\n${comment}`
+      );
       return;
     }
 
-    const comment = `PUNCHER SHOP — ${selectedProduct.name} — ${getPrice(
-      selectedProduct
-    )}`;
+    if (!tonConnectUI.connected) {
+      tonConnectUI.openModal();
+      setCheckoutMessage(
+        "Подключи Telegram Wallet через TON Connect, затем повторно нажми «Перейти к оплате»."
+      );
+      return;
+    }
 
-    setShowTonFallback(true);
-    setCheckoutMessage(
-      `Открой Telegram Wallet, отправь перевод на TON кошелёк ниже и укажи комментарий:\n\n${comment}`
-    );
+    try {
+      const amountNano =
+        orderAmountTon > 0
+          ? BigInt(Math.round(orderAmountTon * 1_000_000_000)).toString()
+          : undefined;
+
+      const tx = {
+        validUntil: Math.floor(Date.now() / 1000) + 600,
+        messages: [
+          {
+            address: TON_WALLET_ADDRESS,
+            ...(amountNano ? { amount: amountNano } : {}),
+          },
+        ],
+      };
+
+      tonConnectUI.sendTransaction(tx);
+
+      setCheckoutMessage(
+        `Запрос на оплату через Telegram Wallet отправлен.\nКомментарий к переводу:\n${comment}`
+      );
+    } catch (error) {
+      console.error("TON Connect sendTransaction error", error);
+      setShowTonFallback(true);
+      setCheckoutMessage(
+        `Не удалось отправить транзакцию через TON Connect. Открой Telegram Wallet, отправь перевод на TON кошелёк ниже и укажи комментарий:\n\n${comment}`
+      );
+    }
   }
 
   const styles = {
