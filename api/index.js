@@ -91,24 +91,33 @@ function releaseLock() {
 const allowedOrigins = new Set([
   "https://puncher-shop.vercel.app",
   "http://localhost:5173",
-  "http://localhost:3000",
   "http://127.0.0.1:5173",
 ]);
 
-app.use(
-  cors({
-    origin: function (origin, callback) {
-      // Allow non-browser requests (no Origin header) and whitelisted origins.
-      if (!origin) return callback(null, true);
-      if (allowedOrigins.has(origin)) return callback(null, true);
-      return callback(null, false);
-    },
-    methods: ["GET", "POST", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
-    credentials: false,
-    optionsSuccessStatus: 204,
-  }),
-);
+// Visible confirmation in logs for debugging deployed environments.
+console.log("CORS allowed origins:", Array.from(allowedOrigins));
+
+const corsOptions = {
+  origin: function (origin, callback) {
+    // Allow non-browser requests (no Origin header) and whitelisted origins.
+    if (!origin) return callback(null, true);
+
+    // Some clients may send a trailing slash; normalize to avoid false negatives.
+    const normalizedOrigin = String(origin).trim().replace(/\/$/, "");
+    if (allowedOrigins.has(normalizedOrigin)) return callback(null, true);
+
+    return callback(null, false);
+  },
+  methods: ["GET", "POST", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+  credentials: false,
+  optionsSuccessStatus: 204,
+};
+
+// Apply CORS before all routes.
+app.use(cors(corsOptions));
+// Ensure preflight requests are handled even when no route is matched.
+app.options("*", cors(corsOptions));
 app.use(express.json());
 
 // Health check
@@ -146,8 +155,14 @@ async function createNowPaymentsInvoice(req, res) {
 
   const apiKey = process.env.NOWPAYMENTS_API_KEY;
   // Avoid localhost in production; configure FRONTEND_URL explicitly for other domains.
+  const requestOrigin = req.headers.origin
+    ? String(req.headers.origin).trim().replace(/\/$/, "")
+    : null;
+
   const frontendUrl =
-    process.env.FRONTEND_URL || "https://puncher-shop.vercel.app";
+    (requestOrigin && allowedOrigins.has(requestOrigin) ? requestOrigin : null) ||
+    process.env.FRONTEND_URL ||
+    "https://puncher-shop.vercel.app";
 
   if (!apiKey) {
     return res.status(500).json({ error: "Сервер не настроен: отсутствует NOWPAYMENTS_API_KEY." });
