@@ -88,7 +88,27 @@ function releaseLock() {
   fs.promises.unlink(lockPath).catch(() => {});
 }
 
-app.use(cors());
+const allowedOrigins = new Set([
+  "https://puncher-shop.vercel.app",
+  "http://localhost:5173",
+  "http://localhost:3000",
+  "http://127.0.0.1:5173",
+]);
+
+app.use(
+  cors({
+    origin: function (origin, callback) {
+      // Allow non-browser requests (no Origin header) and whitelisted origins.
+      if (!origin) return callback(null, true);
+      if (allowedOrigins.has(origin)) return callback(null, true);
+      return callback(null, false);
+    },
+    methods: ["GET", "POST", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+    credentials: false,
+    optionsSuccessStatus: 204,
+  }),
+);
 app.use(express.json());
 
 // Health check
@@ -98,6 +118,13 @@ app.get("/api/health", (req, res) => {
 
 // Create NOWPayments invoice (shared handler)
 async function createNowPaymentsInvoice(req, res) {
+  console.log("NOWPayments route hit:", {
+    path: req.path,
+    originalUrl: req.originalUrl,
+    method: req.method,
+  });
+  console.log("NOWPayments request body:", JSON.stringify(req.body ?? {}, null, 2));
+
   const { pubgId, nickname, contact, packageName, amountUsd } = req.body ?? {};
 
   if (!pubgId || typeof pubgId !== "string" || !String(pubgId).trim()) {
@@ -118,7 +145,9 @@ async function createNowPaymentsInvoice(req, res) {
   }
 
   const apiKey = process.env.NOWPAYMENTS_API_KEY;
-  const frontendUrl = process.env.FRONTEND_URL || "http://localhost:5173";
+  // Avoid localhost in production; configure FRONTEND_URL explicitly for other domains.
+  const frontendUrl =
+    process.env.FRONTEND_URL || "https://puncher-shop.vercel.app";
 
   if (!apiKey) {
     return res.status(500).json({ error: "Сервер не настроен: отсутствует NOWPAYMENTS_API_KEY." });
@@ -142,7 +171,15 @@ async function createNowPaymentsInvoice(req, res) {
   }
 
   try {
-    const response = await fetch("https://api.nowpayments.io/v1/invoice", {
+    const nowPaymentsUrl = "https://api.nowpayments.io/v1/invoice";
+
+    console.log("NOWPayments request:", {
+      url: nowPaymentsUrl,
+      apiKeyPresent: Boolean(apiKey),
+      payload,
+    });
+
+    const response = await fetch(nowPaymentsUrl, {
       method: "POST",
       headers: {
         "x-api-key": apiKey,
@@ -159,11 +196,18 @@ async function createNowPaymentsInvoice(req, res) {
       data = { parseError: true, rawBody };
     }
 
+    console.log("NOWPayments response status:", {
+      status: response.status,
+      statusText: response.statusText,
+    });
+    console.log("NOWPayments response raw body:", rawBody);
+    console.log("NOWPayments response parsed body:", JSON.stringify(data, null, 2));
+
     if (!response.ok) {
-      console.log("NOWPayments error HTTP status:", response.status);
-      console.log("NOWPayments full error response (raw):", rawBody);
-      console.log("NOWPayments full error response (parsed):", JSON.stringify(data, null, 2));
       const msg = data.message || data.error || data.code || response.statusText;
+
+      console.log("NOWPayments error reason:", msg);
+
       return res.status(response.status >= 400 ? response.status : 502).json({
         error: msg || "Не удалось создать счёт NOWPayments.",
       });
@@ -173,8 +217,10 @@ async function createNowPaymentsInvoice(req, res) {
     const invoiceUrl = extractNowPaymentsInvoiceUrl(data);
 
     if (!invoiceUrl) {
-      console.log("NOWPayments: success status but no invoice_url; full body:", rawBody);
-      console.log("NOWPayments parsed:", JSON.stringify(data, null, 2));
+      console.log("NOWPayments: success but no invoice_url; full response:", {
+        rawBody,
+        parsed: data,
+      });
       return res.status(502).json({
         error: "Сервис оплаты не вернул ссылку на счёт.",
       });
@@ -188,7 +234,11 @@ async function createNowPaymentsInvoice(req, res) {
       invoice_url: invoiceUrl,
     });
   } catch (err) {
-    console.log("NOWPayments request exception:", err);
+    console.log("NOWPayments request exception:", {
+      message: err?.message,
+      name: err?.name,
+      stack: err?.stack,
+    });
     console.error("NOWPayments request error:", err);
     return res.status(502).json({
       error: "Ошибка связи с платёжной системой. Попробуйте позже.",

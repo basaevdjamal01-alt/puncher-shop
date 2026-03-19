@@ -514,20 +514,45 @@ export default function App() {
     if (!validateOrderFields()) return;
     setCheckoutMessage("");
     setCardPaymentLoading(true);
+    const endpointPath = "/api/create-payment";
+    const resolvedApiBaseUrl = API_URL || "";
+    const requestUrl = paymentApiUrl(endpointPath);
+
     try {
       const amountUsd = getOrderTotalUSD();
-      const res = await fetch(paymentApiUrl("/api/create-payment"), {
+
+      console.log("[Crypto NOWPayments] API URL used:", resolvedApiBaseUrl || "(empty -> relative URL)");
+      console.log("[Crypto NOWPayments] Request endpoint:", endpointPath);
+      console.log("[Crypto NOWPayments] Full request URL:", requestUrl);
+
+      const payload = {
+        pubgId: pubgID.trim(),
+        nickname: nickname.trim(),
+        contact: contact.trim(),
+        packageName: selectedProduct.name,
+        amountUsd,
+      };
+
+      console.log("[Crypto NOWPayments] Request payload:", payload);
+
+      const res = await fetch(requestUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          pubgId: pubgID.trim(),
-          nickname: nickname.trim(),
-          contact: contact.trim(),
-          packageName: selectedProduct.name,
-          amountUsd,
-        }),
+        body: JSON.stringify(payload),
       });
-      const data = await res.json().catch(() => ({}));
+
+      const responseText = await res.text();
+      console.log("[Crypto NOWPayments] Response status:", res.status, res.statusText);
+      console.log("[Crypto NOWPayments] Response body (text):", responseText);
+
+      let data = {};
+      try {
+        data = responseText ? JSON.parse(responseText) : {};
+      } catch {
+        data = { parseError: true, rawBody: responseText };
+      }
+      console.log("[Crypto NOWPayments] Response body (json if possible):", data);
+
       const invoiceUrl =
         data.invoiceUrl ||
         data.invoice_url ||
@@ -535,17 +560,32 @@ export default function App() {
         data.url ||
         data?.result?.invoice_url ||
         data?.result?.invoiceUrl;
+
       if (res.ok && invoiceUrl && String(invoiceUrl).startsWith("http")) {
         window.location.assign(String(invoiceUrl));
         return;
       }
-      console.error("NOWPayments invoice failed:", res.status, data);
-      alert(
+
+      const errorReason =
         data?.error ||
-          "Не удалось создать оплату. Попробуйте ещё раз."
-      );
+        data?.message ||
+        data?.code ||
+        data?.result?.error ||
+        `HTTP ${res.status} ${res.statusText}`;
+
+      console.error("[Crypto NOWPayments] Invoice creation failed:", {
+        endpointPath,
+        status: res.status,
+        errorReason,
+        response: data,
+      });
+
+      alert(data?.error || "Не удалось создать оплату. Попробуйте ещё раз.");
     } catch (err) {
-      console.error("NOWPayments invoice network error:", err);
+      console.error("[Crypto NOWPayments] Network/request error. Details:", err);
+      console.error("[Crypto NOWPayments] API URL used:", resolvedApiBaseUrl || "(empty -> relative URL)");
+      console.error("[Crypto NOWPayments] Request endpoint:", endpointPath);
+      console.error("[Crypto NOWPayments] Error reason:", err?.message || err);
       alert("Не удалось создать оплату. Попробуйте ещё раз.");
     } finally {
       setCardPaymentLoading(false);
@@ -856,13 +896,13 @@ export default function App() {
       justifyContent: "center",
       fontSize: 9.5,
       lineHeight: "16px",
-      opacity: 0.48,
+      opacity: 0.4,
       borderRadius: 999,
       background: "rgba(0,0,0,0.30)",
       border: "1px solid rgba(255,255,255,0.09)",
       boxShadow: "inset 0 1px 0 rgba(255,255,255,0.05)",
-      filter: "grayscale(1) saturate(0.15) brightness(1.22) contrast(1.05)",
-      transform: "translateY(-0.45px)",
+      filter: "grayscale(1) saturate(0.02) brightness(1.18) contrast(1.05)",
+      transform: "translateY(-0.4px)",
     },
     heroStatLabel: {
       fontSize: 9,
