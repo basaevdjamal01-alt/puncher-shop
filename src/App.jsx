@@ -1,10 +1,18 @@
 import { useState, useEffect } from "react";
 import { useTonConnectUI, useTonWallet } from "@tonconnect/ui-react";
 import ucIcon from "./assets/uc-icon.png";
+import CryptoPaymentBlock from "./components/CryptoPaymentBlock.jsx";
 
 const TON_PRICE_API =
   "https://api.coingecko.com/api/v3/simple/price?ids=the-open-network&vs_currencies=usd";
 const FALLBACK_TON_USD = 5;
+
+function paymentApiUrl(path) {
+  const p = path.startsWith("/") ? path : `/${path}`;
+  // Always use relative URLs so Vite's proxy forwards to the backend port
+  // chosen at runtime (prevents hardcoding `:3001`).
+  return p;
+}
 
 function TelegramIcon() {
   return (
@@ -20,6 +28,203 @@ function TelegramIcon() {
         fill="#229ED9"
       />
     </svg>
+  );
+}
+
+function NowPaymentsDualCoinIcon({ size = 22 }) {
+  return (
+    <span
+      aria-hidden="true"
+      style={{
+        width: size,
+        height: size,
+        display: "inline-flex",
+        alignItems: "center",
+        justifyContent: "center",
+        flexShrink: 0,
+      }}
+    >
+      <svg
+        width={size}
+        height={size}
+        viewBox="0 0 24 24"
+        fill="none"
+        style={{ filter: "drop-shadow(0 0 12px rgba(0,0,0,0.65))" }}
+      >
+        <defs>
+          <linearGradient id="np_usdt" x1="4" y1="6" x2="16" y2="20" gradientUnits="userSpaceOnUse">
+            <stop stopColor="rgba(80, 255, 210, 0.95)" />
+            <stop offset="1" stopColor="rgba(40, 170, 120, 0.75)" />
+          </linearGradient>
+          <linearGradient id="np_btc" x1="8" y1="4" x2="20" y2="18" gradientUnits="userSpaceOnUse">
+            <stop stopColor="rgba(255, 200, 120, 0.95)" />
+            <stop offset="1" stopColor="rgba(255, 140, 40, 0.85)" />
+          </linearGradient>
+          <radialGradient id="np_shine" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(9 8) rotate(55) scale(10 8)">
+            <stop stopColor="rgba(255,255,255,0.35)" />
+            <stop offset="1" stopColor="rgba(255,255,255,0)" />
+          </radialGradient>
+        </defs>
+
+        {/* back coin (BTC-ish) */}
+        <path
+          d="M14.2 4.7c3.7 0 6.7 1.55 6.7 3.46s-3 3.46-6.7 3.46-6.7-1.55-6.7-3.46 3-3.46 6.7-3.46Z"
+          stroke="url(#np_btc)"
+          strokeWidth="1.5"
+          opacity="0.95"
+        />
+        <path
+          d="M20.9 8.16v2.55c0 1.91-3 3.46-6.7 3.46s-6.7-1.55-6.7-3.46V8.16"
+          stroke="url(#np_btc)"
+          strokeWidth="1.5"
+          opacity="0.85"
+        />
+
+        {/* front coin (USDT-ish) */}
+        <path
+          d="M9.8 9.2c3.9 0 7.1 1.7 7.1 3.8s-3.2 3.8-7.1 3.8S2.7 15.1 2.7 13s3.2-3.8 7.1-3.8Z"
+          stroke="url(#np_usdt)"
+          strokeWidth="1.6"
+          opacity="0.98"
+        />
+        <path
+          d="M16.9 13v3.1c0 2.1-3.2 3.8-7.1 3.8s-7.1-1.7-7.1-3.8V13"
+          stroke="url(#np_usdt)"
+          strokeWidth="1.6"
+          opacity="0.9"
+        />
+
+        <path
+          d="M5.3 12.2h9.1"
+          stroke="rgba(255,255,255,0.28)"
+          strokeWidth="1.2"
+          strokeLinecap="round"
+        />
+        <path
+          d="M8.2 11.2v2.1"
+          stroke="rgba(255,255,255,0.26)"
+          strokeWidth="1.1"
+          strokeLinecap="round"
+        />
+        <path
+          d="M12.2 11.2v2.1"
+          stroke="rgba(255,255,255,0.22)"
+          strokeWidth="1.1"
+          strokeLinecap="round"
+        />
+
+        <circle cx="10.2" cy="14.1" r="6.7" fill="url(#np_shine)" opacity="0.55" />
+      </svg>
+    </span>
+  );
+}
+
+function PremiumCardIcon({ tone = "cool", size = 22 }) {
+  const stroke = tone === "warm" ? "rgba(255, 210, 140, 0.92)" : "rgba(215, 235, 255, 0.92)";
+
+  return (
+    <span
+      aria-hidden="true"
+      style={{
+        width: size,
+        height: size,
+        display: "inline-flex",
+        alignItems: "center",
+        justifyContent: "center",
+        flexShrink: 0,
+      }}
+    >
+      <svg
+        width={size}
+        height={size}
+        viewBox="0 0 24 24"
+        fill="none"
+        style={{
+          filter: "drop-shadow(0 0 10px rgba(0,0,0,0.55))",
+        }}
+      >
+        <defs>
+          <linearGradient id={`pc_${tone}`} x1="2" y1="2" x2="22" y2="22" gradientUnits="userSpaceOnUse">
+            <stop stopColor={tone === "warm" ? "rgba(255, 206, 140, 0.35)" : "rgba(140, 205, 255, 0.32)"} />
+            <stop offset="1" stopColor="rgba(0,0,0,0)" />
+          </linearGradient>
+        </defs>
+        <rect x="3" y="6" width="18" height="12" rx="3" fill={`url(#pc_${tone})`} />
+        <rect x="3" y="6" width="18" height="12" rx="3" stroke={stroke} strokeWidth="1.4" />
+        <path d="M3.7 10h16.6" stroke={stroke} strokeWidth="1.4" strokeLinecap="round" opacity="0.9" />
+        <path d="M6.6 15.6h5.4" stroke={stroke} strokeWidth="1.4" strokeLinecap="round" opacity="0.85" />
+      </svg>
+    </span>
+  );
+}
+
+function RussiaFlagIcon({ size = 22 }) {
+  return (
+    <span
+      aria-hidden="true"
+      style={{
+        width: size,
+        height: size,
+        display: "inline-flex",
+        alignItems: "center",
+        justifyContent: "center",
+        flexShrink: 0,
+      }}
+    >
+      <svg
+        width={size}
+        height={size}
+        viewBox="0 0 24 24"
+        style={{ filter: "drop-shadow(0 0 10px rgba(0,0,0,0.6))" }}
+      >
+        <defs>
+          <linearGradient id="rf_border" x1="0" y1="0" x2="24" y2="24" gradientUnits="userSpaceOnUse">
+            <stop stopColor="rgba(255, 230, 200, 0.35)" />
+            <stop offset="1" stopColor="rgba(255, 160, 90, 0)" />
+          </linearGradient>
+          <radialGradient id="rf_shine" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(8 8) rotate(55) scale(12 10)">
+            <stop stopColor="rgba(255,255,255,0.22)" />
+            <stop offset="1" stopColor="rgba(255,255,255,0)" />
+          </radialGradient>
+        </defs>
+        <rect x="4" y="6.2" width="16" height="11.6" rx="3" fill="rgba(0,0,0,0.42)" />
+        <rect x="4.8" y="7" width="14.4" height="3.2" rx="1.6" fill="rgba(255,255,255,0.92)" />
+        <rect x="4.8" y="10.4" width="14.4" height="3.2" rx="1.6" fill="rgba(55,120,240,0.92)" />
+        <rect x="4.8" y="13.8" width="14.4" height="3.2" rx="1.6" fill="rgba(235,70,70,0.92)" />
+        <rect x="4" y="6.2" width="16" height="11.6" rx="3" fill="none" stroke="url(#rf_border)" strokeWidth="1.1" />
+        <rect x="4" y="6.2" width="16" height="11.6" rx="3" fill="url(#rf_shine)" opacity="0.7" />
+      </svg>
+    </span>
+  );
+}
+
+function CryptoStackIcon({ size = 22 }) {
+  return (
+    <span
+      aria-hidden="true"
+      style={{
+        width: size,
+        height: size,
+        display: "inline-flex",
+        alignItems: "center",
+        justifyContent: "center",
+        flexShrink: 0,
+      }}
+    >
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" style={{ filter: "drop-shadow(0 0 10px rgba(0,0,0,0.6))" }}>
+        <defs>
+          <linearGradient id="cs_cyan" x1="2" y1="2" x2="22" y2="22" gradientUnits="userSpaceOnUse">
+            <stop stopColor="rgba(80, 255, 210, 0.85)" />
+            <stop offset="1" stopColor="rgba(80, 170, 255, 0.85)" />
+          </linearGradient>
+        </defs>
+        <path d="M12 3.7c4.6 0 8.3 1.9 8.3 4.2S16.6 12 12 12 3.7 10.1 3.7 7.9 7.4 3.7 12 3.7Z" stroke="url(#cs_cyan)" strokeWidth="1.4" opacity="0.95" />
+        <path d="M20.3 7.9v4.2c0 2.3-3.7 4.2-8.3 4.2s-8.3-1.9-8.3-4.2V7.9" stroke="url(#cs_cyan)" strokeWidth="1.4" opacity="0.9" />
+        <path d="M20.3 12.1v4.2c0 2.3-3.7 4.2-8.3 4.2s-8.3-1.9-8.3-4.2v-4.2" stroke="url(#cs_cyan)" strokeWidth="1.4" opacity="0.85" />
+        <circle cx="16.8" cy="8.6" r="2.2" fill="rgba(0,0,0,0.4)" stroke="rgba(80, 255, 210, 0.85)" strokeWidth="1.2" />
+        <path d="M16 8.6h1.6" stroke="rgba(80, 255, 210, 0.9)" strokeWidth="1.2" strokeLinecap="round" />
+      </svg>
+    </span>
   );
 }
 
@@ -184,13 +389,11 @@ export default function App() {
   const [pubgID, setPubgID] = useState("");
   const [nickname, setNickname] = useState("");
   const [contact, setContact] = useState("");
-  const [payment, setPayment] = useState("CARD");
-  const [showCheckout, setShowCheckout] = useState(false);
-  const [cardNumber, setCardNumber] = useState("");
-  const [cardName, setCardName] = useState("");
-  const [expiry, setExpiry] = useState("");
-  const [cvv, setCvv] = useState("");
+  const [selectedMethod, setSelectedMethod] = useState(null);
+  const [paymentPanelOpen, setPaymentPanelOpen] = useState(true);
+  const [cryptoAccordionOpen, setCryptoAccordionOpen] = useState(false);
   const [checkoutMessage, setCheckoutMessage] = useState("");
+  const [cardPaymentLoading, setCardPaymentLoading] = useState(false);
   const [cryptoComingSoonVisible, setCryptoComingSoonVisible] = useState(false);
   const [showTonFallback, setShowTonFallback] = useState(false);
   const [tonUsdRate, setTonUsdRate] = useState(null);
@@ -243,30 +446,134 @@ export default function App() {
     return true;
   }
 
-  function handleOrder() {
+  async function handlePaddlePayment() {
     if (!validateOrderFields()) return;
-
-    if (payment === "CRYPTO") {
-      handleTelegramWalletPayment();
-      return;
-    }
-
-    setShowCheckout(true);
     setCheckoutMessage("");
-    setTimeout(() => {
-      const block = document.getElementById("checkout-block");
-      if (block) block.scrollIntoView({ behavior: "smooth", block: "start" });
-    }, 50);
+    setCardPaymentLoading(true);
+    try {
+      const res = await fetch(paymentApiUrl("/create-paddle"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          pubgId: pubgID.trim(),
+          nickname: nickname.trim(),
+          contact: contact.trim(),
+          packageName: selectedProduct.name,
+          amountUsd: getOrderTotalUSD(),
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      const url = data.checkoutUrl || data.url;
+      if (res.ok && url) {
+        window.location.href = url;
+        return;
+      }
+      alert(
+        "Оплата картой (США/Европа) временно недоступна. Выберите другой способ или напишите менеджеру."
+      );
+    } catch {
+      alert("Ошибка сети. Попробуйте позже.");
+    } finally {
+      setCardPaymentLoading(false);
+    }
   }
 
-  function handleFakePayment() {
-    if (!cardNumber.trim() || !cardName.trim() || !expiry.trim() || !cvv.trim()) {
-      setCheckoutMessage("Заполни данные карты.");
-      return;
+  async function handleLavaPayment() {
+    if (!validateOrderFields()) return;
+    setCheckoutMessage("");
+    setCardPaymentLoading(true);
+    try {
+      const res = await fetch(paymentApiUrl("/create-lava"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          pubgId: pubgID.trim(),
+          nickname: nickname.trim(),
+          contact: contact.trim(),
+          packageName: selectedProduct.name,
+          amountUsd: getOrderTotalUSD(),
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      const url = data.invoiceUrl || data.paymentUrl || data.url;
+      if (res.ok && url) {
+        window.location.href = url;
+        return;
+      }
+      alert(
+        "Оплата картой (Россия) временно недоступна. Выберите другой способ или напишите менеджеру."
+      );
+    } catch {
+      alert("Ошибка сети. Попробуйте позже.");
+    } finally {
+      setCardPaymentLoading(false);
     }
-    setCheckoutMessage(
-      "Checkout работает как демо. Следующий шаг — подключить реальную оплату Stripe / crypto."
-    );
+  }
+
+  async function handleCryptoPayment() {
+    if (!validateOrderFields()) return;
+    setCheckoutMessage("");
+    setCardPaymentLoading(true);
+    try {
+      const amountUsd = getOrderTotalUSD();
+      const res = await fetch(paymentApiUrl("/api/create-payment"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          pubgId: pubgID.trim(),
+          nickname: nickname.trim(),
+          contact: contact.trim(),
+          packageName: selectedProduct.name,
+          amountUsd,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      const invoiceUrl =
+        data.invoiceUrl ||
+        data.invoice_url ||
+        data.paymentUrl ||
+        data.url ||
+        data?.result?.invoice_url ||
+        data?.result?.invoiceUrl;
+      if (res.ok && invoiceUrl && String(invoiceUrl).startsWith("http")) {
+        window.location.assign(String(invoiceUrl));
+        return;
+      }
+      console.error("NOWPayments invoice failed:", res.status, data);
+      alert(
+        data?.error ||
+          "Не удалось создать оплату. Попробуйте ещё раз."
+      );
+    } catch (err) {
+      console.error("NOWPayments invoice network error:", err);
+      alert("Не удалось создать оплату. Попробуйте ещё раз.");
+    } finally {
+      setCardPaymentLoading(false);
+    }
+  }
+
+  function handleTelegramWallet() {
+    handleTelegramWalletPayment();
+  }
+
+  function handleProceedToPayment() {
+    if (!selectedMethod || !validateOrderFields()) return;
+    switch (selectedMethod) {
+      case "card_international":
+        handlePaddlePayment();
+        break;
+      case "card_russia":
+        handleLavaPayment();
+        break;
+      case "crypto_nowpayments":
+        handleCryptoPayment();
+        break;
+      case "telegram_wallet":
+        handleTelegramWallet();
+        break;
+      default:
+        break;
+    }
   }
 
   function getOrderTotalUSD() {
@@ -547,10 +854,15 @@ export default function App() {
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
-      fontSize: 11,
-      lineHeight: 1,
+      fontSize: 10,
+      lineHeight: "16px",
       opacity: 0.55,
-      filter: "grayscale(1) saturate(0.45) brightness(1.1)",
+      borderRadius: 999,
+      background: "rgba(0,0,0,0.30)",
+      border: "1px solid rgba(255,255,255,0.09)",
+      boxShadow: "inset 0 1px 0 rgba(255,255,255,0.05)",
+      filter: "grayscale(1) saturate(0.2) brightness(1.18)",
+      transform: "translateY(-0.5px)",
     },
     heroStatLabel: {
       fontSize: 9,
@@ -1038,6 +1350,202 @@ export default function App() {
       textTransform: "uppercase",
       letterSpacing: 1,
     },
+    paySelectorShell: {
+      marginTop: 14,
+      borderRadius: 20,
+      padding: 1,
+      background:
+        "linear-gradient(145deg, rgba(255,100,60,0.35), rgba(212,175,55,0.12), rgba(20,0,0,0.95))",
+      boxShadow:
+        "0 12px 32px rgba(0,0,0,0.85), 0 0 0 1px rgba(255,80,50,0.15)",
+    },
+    paySelectorInner: {
+      borderRadius: 19,
+      overflow: "hidden",
+      background:
+        "radial-gradient(ellipse 120% 80% at 50% 0%, rgba(255,60,40,0.12), transparent 50%), linear-gradient(165deg, #0c0808 0%, #080606 100%)",
+      border: "1px solid rgba(255,255,255,0.06)",
+    },
+    paySelectorHeader: {
+      width: "100%",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "space-between",
+      gap: 12,
+      padding: "14px 16px",
+      background: "transparent",
+      border: "none",
+      cursor: "pointer",
+      color: "#fff",
+      textAlign: "left",
+      WebkitTapHighlightColor: "transparent",
+      touchAction: "manipulation",
+    },
+    paySelectorTitle: {
+      fontSize: 15,
+      fontWeight: 900,
+      letterSpacing: 0.8,
+      textTransform: "uppercase",
+      color: "rgba(255,240,230,0.98)",
+      textShadow: "0 0 20px rgba(255,100,60,0.25)",
+    },
+    paySelectorChevron: (open) => ({
+      flexShrink: 0,
+      width: 22,
+      height: 22,
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      borderRadius: 8,
+      background: "rgba(0,0,0,0.45)",
+      border: "1px solid rgba(212,175,55,0.25)",
+      transition: "transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+      transform: open ? "rotate(180deg)" : "rotate(0deg)",
+    }),
+    paySelectorBody: {
+      overflow: "hidden",
+      transition: "max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.25s ease",
+    },
+    paySelectorBodyInner: {
+      padding: "4px 12px 14px",
+      display: "flex",
+      flexDirection: "column",
+      gap: 10,
+    },
+    payMethodCard: (selected) => ({
+      borderRadius: 18,
+      padding: "14px 14px",
+      cursor: "pointer",
+      textAlign: "left",
+      border: selected
+        ? "1px solid rgba(212,175,55,0.65)"
+        : "1px solid rgba(255,255,255,0.08)",
+      background: selected
+        ? "radial-gradient(ellipse 100% 120% at 50% 0%, rgba(212,175,55,0.14), transparent 55%), linear-gradient(160deg, rgba(30,12,8,0.95), rgba(8,6,6,0.98))"
+        : "linear-gradient(160deg, rgba(14,12,12,0.96), rgba(6,6,8,0.98))",
+      boxShadow: selected
+        ? "0 0 0 1px rgba(255,200,100,0.15), 0 8px 28px rgba(0,0,0,0.75), 0 0 24px rgba(212,175,55,0.12)"
+        : "0 6px 20px rgba(0,0,0,0.5)",
+      transition:
+        "transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease, background 0.22s ease",
+      WebkitTapHighlightColor: "transparent",
+      touchAction: "manipulation",
+    }),
+    payMethodRow: {
+      display: "flex",
+      alignItems: "flex-start",
+      gap: 12,
+    },
+    payMethodEmoji: {
+      fontSize: 22,
+      lineHeight: 1,
+      flexShrink: 0,
+      filter: "saturate(0.85) brightness(1.05)",
+      opacity: 0.92,
+    },
+    payMethodTitle: {
+      fontSize: 14,
+      fontWeight: 800,
+      color: "rgba(255,248,240,0.98)",
+      letterSpacing: 0.2,
+    },
+    payMethodDesc: {
+      fontSize: 12,
+      color: "rgba(255,255,255,0.58)",
+      marginTop: 4,
+      lineHeight: 1.45,
+    },
+    payCryptoHeader: (selected, open) => ({
+      borderRadius: 18,
+      padding: "14px 14px",
+      cursor: "pointer",
+      textAlign: "left",
+      width: "100%",
+      boxSizing: "border-box",
+      border: selected
+        ? "1px solid rgba(180,220,255,0.35)"
+        : "1px solid rgba(255,255,255,0.08)",
+      background:
+        "linear-gradient(160deg, rgba(12,14,18,0.96), rgba(6,8,10,0.98))",
+      boxShadow: selected
+        ? "0 0 20px rgba(100,180,255,0.08)"
+        : "0 6px 20px rgba(0,0,0,0.5)",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "space-between",
+      gap: 10,
+      transition: "all 0.22s ease",
+      WebkitTapHighlightColor: "transparent",
+    }),
+    payCryptoChevron: (open) => ({
+      flexShrink: 0,
+      width: 22,
+      height: 22,
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      borderRadius: 8,
+      background: "rgba(0,0,0,0.4)",
+      border: "1px solid rgba(120,200,255,0.2)",
+      transition: "transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+      transform: open ? "rotate(180deg)" : "rotate(0deg)",
+    }),
+    payCryptoSubWrap: {
+      overflow: "hidden",
+      transition: "max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+    },
+    payCryptoSubInner: {
+      paddingTop: 8,
+      display: "flex",
+      flexDirection: "column",
+      gap: 8,
+    },
+    paySubCard: (selected) => ({
+      borderRadius: 16,
+      padding: "12px 14px",
+      cursor: "pointer",
+      textAlign: "left",
+      border: selected
+        ? "1px solid rgba(212,175,55,0.5)"
+        : "1px solid rgba(255,255,255,0.07)",
+      background: selected
+        ? "rgba(212,175,55,0.06)"
+        : "rgba(0,0,0,0.35)",
+      transition: "transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease",
+      WebkitTapHighlightColor: "transparent",
+    }),
+    paySubTitle: {
+      fontSize: 13,
+      fontWeight: 800,
+      color: "rgba(255,245,235,0.95)",
+    },
+    paySubDesc: {
+      fontSize: 11,
+      color: "rgba(255,255,255,0.52)",
+      marginTop: 3,
+      lineHeight: 1.4,
+    },
+    payProceedBtn: (enabled) => ({
+      width: "100%",
+      marginTop: 4,
+      border: "none",
+      borderRadius: 16,
+      padding: "15px 16px",
+      fontWeight: 900,
+      fontSize: 13,
+      letterSpacing: 1,
+      textTransform: "uppercase",
+      cursor: enabled ? "pointer" : "not-allowed",
+      opacity: enabled ? 1 : 0.5,
+      background: enabled
+        ? "radial-gradient(circle at top, rgba(255,220,180,0.12), transparent 55%), linear-gradient(155deg, #e85a2a, #8f1808)"
+        : "linear-gradient(155deg, #2a2220, #1a1515)",
+      color: enabled ? "#fff" : "rgba(255,255,255,0.45)",
+      boxShadow: enabled
+        ? "0 0 28px rgba(255,80,40,0.45), 0 8px 24px rgba(0,0,0,0.6)"
+        : "none",
+      transition: "all 0.2s ease",
+    }),
     footerName: {
       display: "flex",
       alignItems: "center",
@@ -1187,19 +1695,43 @@ export default function App() {
       },
   };
 
-  const paymentLabel =
-    payment === "CRYPTO" ? "TELEGRAM WALLET" : payment;
+  const paymentLabelRu = (() => {
+    switch (selectedMethod) {
+      case "card_international":
+        return "Карта (США / Европа)";
+      case "card_russia":
+        return "Карта (Россия)";
+      case "crypto_nowpayments":
+        return "USDT / BTC";
+      case "telegram_wallet":
+        return "Telegram Wallet";
+      default:
+        return "Не выбран";
+    }
+  })();
 
-  const summaryText = `NEW ORDER — PUNCHER SHOP
+  const CRYPTO_MIN_USD = 10;
+  const orderAmountUsd = getOrderTotalUSD();
+  const isCryptoNowpayments = selectedMethod === "crypto_nowpayments";
+  const isCryptoEligible = !isCryptoNowpayments || orderAmountUsd >= CRYPTO_MIN_USD;
 
-Package: ${selectedProduct.name}
-Price: ${getPrice(selectedProduct)}
-${payment === "CRYPTO" ? `Pay in TON: ${getOrderTotalTON()} TON\n` : ""}Currency: ${currency}
-Payment: ${paymentLabel}
+  const payProceedEnabled =
+    !!selectedMethod && !cardPaymentLoading && isCryptoEligible;
+
+  const summaryText = `НОВЫЙ ЗАКАЗ — PUNCHER SHOP
+
+Пакет: ${selectedProduct.name}
+Цена: ${getPrice(selectedProduct)}
+${
+    selectedMethod === "telegram_wallet"
+      ? `К оплате в TON: ${getOrderTotalTON()} TON\n`
+      : ""
+}Валюта отображения: ${currency}
+Способ оплаты: ${paymentLabelRu}
 
 PUBG ID: ${pubgID || "—"}
-Nickname: ${nickname || "—"}
-Contact: ${contact || "—"}`;
+Ник: ${nickname || "—"}
+Контакт: ${contact || "—"}`;
 
   return (
     <div style={styles.page}>
@@ -1228,6 +1760,142 @@ Contact: ${contact || "—"}`;
         }
         .card-interactive:active {
           transform: translateY(1px) scale(0.98);
+        }
+        .pay-method-card-interactive:hover {
+          transform: scale(1.012);
+          box-shadow: 0 10px 28px rgba(0,0,0,0.65), 0 0 20px rgba(255,60,40,0.08);
+        }
+        .pay-method-card-interactive:active {
+          transform: scale(0.992);
+        }
+        .pay-method-selected.pay-method-card-interactive:hover {
+          box-shadow: 0 0 0 1px rgba(255,200,100,0.2), 0 10px 32px rgba(0,0,0,0.75), 0 0 28px rgba(212,175,55,0.14);
+        }
+
+        .payCard {
+          position: relative;
+          overflow: hidden;
+          will-change: transform;
+        }
+        .payCard::before {
+          content: "";
+          position: absolute;
+          inset: -2px;
+          border-radius: 20px;
+          background: radial-gradient(80% 110% at 20% 0%, var(--accent, rgba(255,70,40,0.6)) 0%, transparent 55%);
+          opacity: 0;
+          filter: blur(14px);
+          transition: opacity 0.28s ease;
+          pointer-events: none;
+        }
+        .payCard::after {
+          content: "";
+          position: absolute;
+          inset: 0;
+          border-radius: 18px;
+          box-shadow: inset 0 1px 0 rgba(255,255,255,0.08);
+          pointer-events: none;
+        }
+        .payCard:hover::before { opacity: 0.7; }
+        .payCardSelected {
+          animation: paySelectedGlow 1.8s ease-in-out infinite;
+        }
+        @keyframes paySelectedGlow {
+          0%, 100% { filter: brightness(1); }
+          50% { filter: brightness(1.06); }
+        }
+        .payCardHoverLift {
+          transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1), border-color 0.3s ease, background 0.3s ease, box-shadow 0.3s ease, filter 0.3s ease;
+        }
+        .payCardHoverLift:hover { transform: translateY(-2px) scale(1.014); }
+        .payCardHoverLift:active { transform: translateY(0) scale(0.992); }
+
+        .accordionInner {
+          transform-origin: top;
+          transition: opacity 0.28s ease, transform 0.28s ease;
+        }
+
+        .flagBadge {
+          border-radius: 10px;
+          padding: 6px;
+          background: linear-gradient(145deg, rgba(10,10,10,0.88), rgba(20,0,0,0.78));
+          border: 1px solid rgba(255,255,255,0.10);
+          box-shadow: 0 0 0 1px rgba(255,150,90,0.06), 0 10px 18px rgba(0,0,0,0.7);
+          transition: box-shadow 0.22s ease, transform 0.22s ease, border-color 0.22s ease, filter 0.22s ease;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+        }
+        .payCardHoverLift:hover .flagBadge {
+          border-color: rgba(255,170,120,0.22);
+          box-shadow: 0 0 0 1px rgba(255,170,120,0.12), 0 0 18px rgba(255,140,80,0.10), 0 12px 24px rgba(0,0,0,0.72);
+          filter: brightness(1.03);
+        }
+
+        .cryptoStackGlow {
+          transition: filter 0.25s ease, transform 0.25s ease;
+          will-change: filter, transform;
+        }
+        .payCardHoverLift:hover .cryptoStackGlow {
+          filter: drop-shadow(0 0 16px rgba(80, 255, 210, 0.18)) drop-shadow(0 0 16px rgba(80, 170, 255, 0.14));
+          transform: translateY(-0.5px);
+        }
+
+        .npCard {
+          position: relative;
+        }
+        .npCard::before {
+          content: "";
+          position: absolute;
+          inset: 0;
+          border-radius: 16px;
+          pointer-events: none;
+          box-shadow: inset 0 0 0 1px rgba(255,255,255,0.06);
+        }
+        .npCard::after {
+          content: "";
+          position: absolute;
+          inset: -1px;
+          border-radius: 18px;
+          pointer-events: none;
+          opacity: 0;
+          transition: opacity 0.28s ease;
+          background: linear-gradient(135deg, rgba(80,255,210,0.38), rgba(255,140,40,0.32), rgba(140,200,255,0.18));
+          filter: blur(10px);
+        }
+        .payCardHoverLift:hover.npCard::after { opacity: 0.65; }
+        .npGatewayTag {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          padding: 4px 8px;
+          border-radius: 999px;
+          background: rgba(0,0,0,0.46);
+          border: 1px solid rgba(120,255,210,0.18);
+          color: rgba(220,255,245,0.88);
+          font-size: 10px;
+          letter-spacing: 1.1px;
+          text-transform: uppercase;
+          box-shadow: 0 0 18px rgba(80,255,210,0.06);
+        }
+        .npPulse {
+          width: 7px;
+          height: 7px;
+          border-radius: 999px;
+          background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.9), rgba(80,255,210,0.9), rgba(0,0,0,0));
+          box-shadow: 0 0 14px rgba(80,255,210,0.35);
+          opacity: 0.85;
+        }
+
+        .tgBadgeIcon {
+          transition: transform 0.22s ease, filter 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease;
+          will-change: transform, filter;
+        }
+        .payCardHoverLift:hover .tgBadgeIcon {
+          transform: translateY(-0.5px);
+          border-color: rgba(120,200,255,0.38) !important;
+          box-shadow: 0 0 18px rgba(34, 158, 217, 0.22) !important;
+          filter: drop-shadow(0 0 14px rgba(34, 158, 217, 0.22));
         }
       `}</style>
 
@@ -1422,115 +2090,315 @@ Contact: ${contact || "—"}`;
                 </div>
               </div>
 
-              <div style={styles.paymentRow}>
-                <button
-                  className="hover-lift"
-                  style={styles.paymentBtn(payment === "CARD", false)}
-                  onClick={() => setPayment("CARD")}
-                >
-                  Оплата картой
-                </button>
-                <button
-                  className="hover-lift"
-                  style={styles.paymentBtn(payment === "CRYPTO", true)}
-                  onClick={() => setPayment("CRYPTO")}
-                >
-                  <span style={styles.telegramWalletIcon}>
-                    <TelegramIcon />
-                  </span>
-                  <span style={styles.telegramWalletText}>TELEGRAM WALLET</span>
-                </button>
+              <div style={styles.paySelectorShell}>
+                <div style={styles.paySelectorInner}>
+                  <button
+                    type="button"
+                    style={styles.paySelectorHeader}
+                    onClick={() => setPaymentPanelOpen((o) => !o)}
+                    aria-expanded={paymentPanelOpen}
+                  >
+                    <span style={{ display: "flex", flexDirection: "column", gap: 4, alignItems: "flex-start", minWidth: 0 }}>
+                      <span style={styles.paySelectorTitle}>
+                        {paymentPanelOpen
+                          ? "Выберите способ оплаты"
+                          : "Выбрать способ оплаты"}
+                      </span>
+                      {!paymentPanelOpen && selectedMethod ? (
+                        <span
+                          style={{
+                            fontSize: 11,
+                            fontWeight: 600,
+                            color: "rgba(212,175,55,0.85)",
+                            textTransform: "none",
+                            letterSpacing: 0.2,
+                            lineHeight: 1.3,
+                          }}
+                        >
+                          {paymentLabelRu}
+                        </span>
+                      ) : null}
+                    </span>
+                    <span style={styles.paySelectorChevron(paymentPanelOpen)}>
+                      <svg
+                        width="12"
+                        height="12"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="rgba(212,175,55,0.85)"
+                        strokeWidth="2.2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        aria-hidden
+                      >
+                        <path d="M6 9l6 6 6-6" />
+                      </svg>
+                    </span>
+                  </button>
+                  <div
+                    style={{
+                      ...styles.paySelectorBody,
+                      maxHeight: paymentPanelOpen ? 1600 : 0,
+                      opacity: paymentPanelOpen ? 1 : 0,
+                    }}
+                  >
+                    <div style={styles.paySelectorBodyInner}>
+                      <button
+                        type="button"
+                        className={`pay-method-card-interactive payCard payCardHoverLift ${selectedMethod === "card_international" ? "pay-method-selected payCardSelected" : ""}`}
+                        style={{
+                          ...styles.payMethodCard(selectedMethod === "card_international"),
+                          border: selectedMethod === "card_international"
+                            ? "1px solid rgba(170, 215, 255, 0.72)"
+                            : "1px solid rgba(255,255,255,0.08)",
+                          background: selectedMethod === "card_international"
+                            ? "radial-gradient(ellipse 110% 140% at 40% 0%, rgba(120, 190, 255, 0.14), transparent 60%), linear-gradient(160deg, rgba(10,12,18,0.96), rgba(6,6,10,0.98))"
+                            : "linear-gradient(160deg, rgba(12,12,16,0.96), rgba(6,6,10,0.98))",
+                          ["--accent"]: "rgba(120, 200, 255, 0.62)",
+                        }}
+                        onClick={() => {
+                          setSelectedMethod("card_international");
+                          setCryptoAccordionOpen(false);
+                        }}
+                      >
+                        <div style={styles.payMethodRow}>
+                          <PremiumCardIcon tone="cool" />
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={styles.payMethodTitle}>
+                              Оплата картой (США / Европа)
+                            </div>
+                            <div style={styles.payMethodDesc}>
+                              Visa / Mastercard, быстрый и безопасный платеж
+                            </div>
+                          </div>
+                        </div>
+                      </button>
+
+                      <button
+                        type="button"
+                        className={`pay-method-card-interactive payCard payCardHoverLift ${selectedMethod === "card_russia" ? "pay-method-selected payCardSelected" : ""}`}
+                        style={{
+                          ...styles.payMethodCard(selectedMethod === "card_russia"),
+                          border: selectedMethod === "card_russia"
+                            ? "1px solid rgba(255, 210, 140, 0.70)"
+                            : "1px solid rgba(255,255,255,0.08)",
+                          background: selectedMethod === "card_russia"
+                            ? "radial-gradient(ellipse 110% 140% at 40% 0%, rgba(255, 190, 120, 0.14), transparent 60%), linear-gradient(160deg, rgba(18,12,8,0.96), rgba(6,6,8,0.98))"
+                            : "linear-gradient(160deg, rgba(14,12,12,0.96), rgba(6,6,8,0.98))",
+                          ["--accent"]: "rgba(255, 190, 120, 0.62)",
+                        }}
+                        onClick={() => {
+                          setSelectedMethod("card_russia");
+                          setCryptoAccordionOpen(false);
+                        }}
+                      >
+                        <div style={styles.payMethodRow}>
+                          <span className="flagBadge">
+                            <RussiaFlagIcon />
+                          </span>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={styles.payMethodTitle}>
+                              Оплата картой (Россия)
+                            </div>
+                            <div style={styles.payMethodDesc}>
+                              Локальные способы оплаты для РФ
+                            </div>
+                          </div>
+                        </div>
+                      </button>
+
+                      <div>
+                        <button
+                          type="button"
+                          className="pay-method-card-interactive payCard payCardHoverLift"
+                          style={styles.payCryptoHeader(
+                            selectedMethod === "crypto_nowpayments" ||
+                              selectedMethod === "telegram_wallet",
+                            cryptoAccordionOpen
+                          )}
+                          onClick={() =>
+                            setCryptoAccordionOpen((c) => !c)
+                          }
+                          aria-expanded={cryptoAccordionOpen}
+                        >
+                          <div style={styles.payMethodRow}>
+                            <span className="cryptoStackGlow">
+                              <CryptoStackIcon />
+                            </span>
+                            <div style={{ flex: 1, minWidth: 0, textAlign: "left" }}>
+                              <div style={styles.payMethodTitle}>Криптовалюта</div>
+                              <div style={styles.payMethodDesc}>
+                                USDT, BTC, Telegram Wallet (TON)
+                              </div>
+                            </div>
+                          </div>
+                          <span style={styles.payCryptoChevron(cryptoAccordionOpen)}>
+                            <svg
+                              width="11"
+                              height="11"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="rgba(140,200,255,0.75)"
+                              strokeWidth="2.2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              aria-hidden
+                            >
+                              <path d="M6 9l6 6 6-6" />
+                            </svg>
+                          </span>
+                        </button>
+                        <div
+                          style={{
+                            ...styles.payCryptoSubWrap,
+                            maxHeight: cryptoAccordionOpen ? 320 : 0,
+                          }}
+                        >
+                          <div
+                            className="accordionInner"
+                            style={{
+                              ...styles.payCryptoSubInner,
+                              opacity: cryptoAccordionOpen ? 1 : 0,
+                              transform: cryptoAccordionOpen ? "translateY(0)" : "translateY(-6px)",
+                            }}
+                          >
+                            <button
+                              type="button"
+                              className={`pay-method-card-interactive payCard payCardHoverLift npCard ${selectedMethod === "crypto_nowpayments" ? "pay-method-selected payCardSelected" : ""}`}
+                              style={{
+                                ...styles.paySubCard(selectedMethod === "crypto_nowpayments"),
+                                border:
+                                  selectedMethod === "crypto_nowpayments"
+                                    ? "1px solid rgba(120, 255, 210, 0.55)"
+                                    : "1px solid rgba(255,255,255,0.07)",
+                                background:
+                                  selectedMethod === "crypto_nowpayments"
+                                    ? "radial-gradient(ellipse 120% 150% at 40% 0%, rgba(80, 255, 210, 0.12), transparent 60%), radial-gradient(ellipse 120% 150% at 80% 0%, rgba(255, 140, 40, 0.08), transparent 62%), rgba(0,0,0,0.35)"
+                                    : "rgba(0,0,0,0.35)",
+                                ["--accent"]: "rgba(80, 255, 210, 0.62)",
+                              }}
+                              onClick={() => {
+                                setCryptoAccordionOpen(true);
+                                setSelectedMethod("crypto_nowpayments");
+                              }}
+                            >
+                              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                                <span style={{ width: 22, height: 22, display: "inline-flex", alignItems: "center", justifyContent: "center", opacity: 0.95 }}>
+                                  <NowPaymentsDualCoinIcon size={20} />
+                                </span>
+                                <div style={{ minWidth: 0 }}>
+                                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
+                                    <div style={{ ...styles.paySubTitle, fontSize: 14, fontWeight: 900 }}>
+                                      USDT / BTC
+                                    </div>
+                                  </div>
+                                  <div style={{ marginTop: 6, display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                                    <span className="npGatewayTag">
+                                      <span className="npPulse" />
+                                      Gateway
+                                    </span>
+                                    <div style={{ ...styles.paySubDesc, marginTop: 0, color: "rgba(255,255,255,0.50)" }}>
+                                      Оплата через криптовалюту
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            </button>
+                            <button
+                              type="button"
+                              className={`pay-method-card-interactive payCard payCardHoverLift ${selectedMethod === "telegram_wallet" ? "pay-method-selected payCardSelected" : ""}`}
+                              style={{
+                                ...styles.paySubCard(selectedMethod === "telegram_wallet"),
+                                border:
+                                  selectedMethod === "telegram_wallet"
+                                    ? "1px solid rgba(120, 200, 255, 0.60)"
+                                    : "1px solid rgba(255,255,255,0.07)",
+                                background:
+                                  selectedMethod === "telegram_wallet"
+                                    ? "radial-gradient(ellipse 120% 150% at 40% 0%, rgba(120, 200, 255, 0.12), transparent 60%), rgba(0,0,0,0.35)"
+                                    : "rgba(0,0,0,0.35)",
+                                ["--accent"]: "rgba(120, 200, 255, 0.62)",
+                              }}
+                              onClick={() => {
+                                setCryptoAccordionOpen(true);
+                                setSelectedMethod("telegram_wallet");
+                              }}
+                            >
+                              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                                <span
+                                  className="tgBadgeIcon"
+                                  style={{
+                                    width: 22,
+                                    height: 22,
+                                    display: "inline-flex",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                    borderRadius: 8,
+                                    background: "rgba(0,0,0,0.35)",
+                                    border: "1px solid rgba(120,200,255,0.25)",
+                                    boxShadow: "0 0 14px rgba(34,158,217,0.10)",
+                                  }}
+                                >
+                                  <TelegramIcon />
+                                </span>
+                                <div style={{ minWidth: 0 }}>
+                                  <div style={styles.paySubTitle}>Telegram Wallet</div>
+                                  <div style={styles.paySubDesc}>Быстрая оплата через Telegram</div>
+                                </div>
+                              </div>
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+
+                      {selectedMethod === "crypto_nowpayments" ? (
+                        <CryptoPaymentBlock
+                          orderAmountUsd={orderAmountUsd}
+                          minUsd={CRYPTO_MIN_USD}
+                        />
+                      ) : null}
+
+                      <button
+                        type="button"
+                        className="hover-lift hover-glow"
+                        style={styles.payProceedBtn(payProceedEnabled)}
+                        disabled={!selectedMethod || cardPaymentLoading || !isCryptoEligible}
+                        onClick={handleProceedToPayment}
+                      >
+                        {cardPaymentLoading
+                          ? "Обработка..."
+                          : selectedMethod === "crypto_nowpayments"
+                            ? "Оплатить криптовалютой"
+                            : "Перейти к оплате"}
+                      </button>
+                    </div>
+                  </div>
+                </div>
               </div>
 
               <div style={styles.summary}>{summaryText}</div>
 
-              <div style={styles.bottomRow}>
+              <div style={{ marginTop: 12 }}>
                 <button
                   className="hover-lift"
-                  style={styles.managerBtn}
+                  style={{
+                    ...styles.managerBtn,
+                    width: "100%",
+                    padding: "13px 14px",
+                    fontSize: 12,
+                  }}
                   onClick={() => window.open("https://t.me/el_pancher", "_blank")}
                 >
                   Написать менеджеру
-                </button>
-                <button
-                  className="hover-lift hover-glow"
-                  style={styles.orderBtn}
-                  onClick={handleOrder}
-                >
-                  Перейти к оплате
                 </button>
               </div>
             </div>
           </section>
 
-          {showCheckout && payment === "CARD" ? (
-            <section id="checkout-block" style={styles.checkoutWrap}>
-              <div style={styles.checkoutInner}>
-                <div style={styles.checkoutHeaderRow}>
-                  <div style={styles.checkoutTitle}>Шаг 2 — оплата</div>
-                  <div style={styles.checkoutBadge}>
-                    <span style={styles.checkoutSecureDot} />
-                    <span>Демо-оплата / тест</span>
-                  </div>
-                </div>
-
-                <div style={styles.checkoutNote}>
-                  Это внутренний экран оплаты внутри Telegram Mini App. Здесь позже
-                  появится реальная платёжная система (Stripe / крипто–шлюз).
-                </div>
-
-                <div style={styles.checkoutGridShell}>
-                  <div>
-                    <input
-                      style={styles.fullInput}
-                      placeholder="Номер карты"
-                      value={cardNumber}
-                      onChange={(e) => setCardNumber(e.target.value)}
-                    />
-                    <input
-                      style={styles.fullInput}
-                      placeholder="Имя держателя (латиницей)"
-                      value={cardName}
-                      onChange={(e) => setCardName(e.target.value)}
-                    />
-
-                    <div style={styles.checkoutGrid}>
-                      <input
-                        style={styles.fullInput}
-                        placeholder="MM/YY"
-                        value={expiry}
-                        onChange={(e) => setExpiry(e.target.value)}
-                      />
-                      <input
-                        style={styles.fullInput}
-                        placeholder="CVV"
-                        value={cvv}
-                        onChange={(e) => setCvv(e.target.value)}
-                      />
-                    </div>
-
-                    <button
-                      className="hover-lift hover-glow"
-                      style={styles.payNowBtn}
-                      onClick={handleFakePayment}
-                    >
-                      Оплатить (демо)
-                    </button>
-                  </div>
-
-                  <div>
-                    <div style={styles.checkoutSummary}>{summaryText}</div>
-                    <div style={styles.checkoutPriceTag}>
-                      К оплате: <strong>{getPrice(selectedProduct)}</strong>
-                    </div>
-                  </div>
-                </div>
-
-                {checkoutMessage ? (
-                  <div style={styles.checkoutMessage}>{checkoutMessage}</div>
-                ) : null}
-              </div>
-            </section>
+          {checkoutMessage ? (
+            <div style={{ ...styles.checkoutMessage, marginTop: 14 }}>
+              {checkoutMessage}
+            </div>
           ) : null}
 
           {cryptoComingSoonVisible ? (

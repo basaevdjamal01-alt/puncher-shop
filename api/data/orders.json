@@ -1,0 +1,74 @@
+{
+  "ordersByOrderId": {
+    "order_1773935195508_bd0rw11rg9": {
+      "orderId": "order_1773935195508_bd0rw11rg9",
+      "pubgId": "123412",
+      "nickname": "2343242",
+      "contact": "423432",
+      "packageName": "60 UC",
+      "amountUsd": 0.76,
+      "paymentMethod": "Crypto / NOWPayments",
+      "createdAt": "2026-03-19T15:46:35.508Z",
+      "nowpayments": {
+        "invoiceId": null,
+        "invoiceUrl": null
+      },
+      "telegram": {
+        "sent": false,
+        "sentAt": null,
+        "lastEventKey": null,
+        "sending": false,
+        "sendingAt": null,
+        "lastError": null,
+        "paymentStatus": null
+      }
+    },
+    "order_1773935203800_qlcaoaba1g": {
+      "orderId": "order_1773935203800_qlcaoaba1g",
+      "pubgId": "123412",
+      "nickname": "2343242",
+      "contact": "423432",
+      "packageName": "16200 UC",
+      "amountUsd": 196.32,
+      "paymentMethod": "Crypto / NOWPayments",
+      "createdAt": "2026-03-19T15:46:43.800Z",
+      "nowpayments": {
+        "invoiceId": "4514927581",
+        "invoiceUrl": "https://nowpayments.io/payment/?iid=4514927581"
+      },
+      "telegram": {
+        "sent": false,
+        "sentAt": null,
+        "lastEventKey": null,
+        "sending": false,
+        "sendingAt": null,
+        "lastError": null,
+        "paymentStatus": null
+      }
+    },
+    "order_1773935409922_u3b3f0i39i": {
+      "orderId": "order_1773935409922_u3b3f0i39i",
+      "pubgId": "12331242",
+      "nickname": "423423",
+      "contact": "231432",
+      "packageName": "720 UC",
+      "amountUsd": 10.79,
+      "paymentMethod": "Crypto / NOWPayments",
+      "createdAt": "2026-03-19T15:50:09.922Z",
+      "nowpayments": {
+        "invoiceId": "4569723337",
+        "invoiceUrl": "https://nowpayments.io/payment/?iid=4569723337"
+      },
+      "telegram": {
+        "sent": false,
+        "sentAt": null,
+        "lastEventKey": null,
+        "sending": false,
+        "sendingAt": null,
+        "lastError": null,
+        "paymentStatus": null
+      }
+    }
+  },
+  "eventStates": {}
+}
