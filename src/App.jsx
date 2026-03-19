@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useTonConnectUI, useTonWallet } from "@tonconnect/ui-react";
 import ucIcon from "./assets/uc-icon.png";
 import CryptoPaymentBlock from "./components/CryptoPaymentBlock.jsx";
+import ProcessingState from "./components/ProcessingState.jsx";
 
 const TON_PRICE_API =
   "https://api.coingecko.com/api/v3/simple/price?ids=the-open-network&vs_currencies=usd";
@@ -394,6 +395,7 @@ export default function App() {
   const [cryptoAccordionOpen, setCryptoAccordionOpen] = useState(false);
   const [checkoutMessage, setCheckoutMessage] = useState("");
   const [cardPaymentLoading, setCardPaymentLoading] = useState(false);
+  const [processingAttempt, setProcessingAttempt] = useState(0);
   const [cryptoComingSoonVisible, setCryptoComingSoonVisible] = useState(false);
   const [showTonFallback, setShowTonFallback] = useState(false);
   const [tonUsdRate, setTonUsdRate] = useState(null);
@@ -446,10 +448,19 @@ export default function App() {
     return true;
   }
 
+  function startPaymentProcessing() {
+    setCheckoutMessage("");
+    setProcessingAttempt((prev) => prev + 1);
+    setCardPaymentLoading(true);
+  }
+
+  function stopPaymentProcessing() {
+    setCardPaymentLoading(false);
+  }
+
   async function handlePaddlePayment() {
     if (!validateOrderFields()) return;
-    setCheckoutMessage("");
-    setCardPaymentLoading(true);
+    startPaymentProcessing();
     try {
       const res = await fetch(paymentApiUrl("/create-paddle"), {
         method: "POST",
@@ -465,6 +476,7 @@ export default function App() {
       const data = await res.json().catch(() => ({}));
       const url = data.checkoutUrl || data.url;
       if (res.ok && url) {
+        stopPaymentProcessing();
         window.location.href = url;
         return;
       }
@@ -474,14 +486,13 @@ export default function App() {
     } catch {
       alert("Ошибка сети. Попробуйте позже.");
     } finally {
-      setCardPaymentLoading(false);
+      stopPaymentProcessing();
     }
   }
 
   async function handleLavaPayment() {
     if (!validateOrderFields()) return;
-    setCheckoutMessage("");
-    setCardPaymentLoading(true);
+    startPaymentProcessing();
     try {
       const res = await fetch(paymentApiUrl("/create-lava"), {
         method: "POST",
@@ -497,6 +508,7 @@ export default function App() {
       const data = await res.json().catch(() => ({}));
       const url = data.invoiceUrl || data.paymentUrl || data.url;
       if (res.ok && url) {
+        stopPaymentProcessing();
         window.location.href = url;
         return;
       }
@@ -506,14 +518,13 @@ export default function App() {
     } catch {
       alert("Ошибка сети. Попробуйте позже.");
     } finally {
-      setCardPaymentLoading(false);
+      stopPaymentProcessing();
     }
   }
 
   async function handleCryptoPayment() {
     if (!validateOrderFields()) return;
-    setCheckoutMessage("");
-    setCardPaymentLoading(true);
+    startPaymentProcessing();
     const endpointPath = "/api/create-payment";
     const resolvedApiBaseUrl = API_URL || "";
     const requestUrl = paymentApiUrl(endpointPath);
@@ -562,6 +573,7 @@ export default function App() {
         data?.result?.invoiceUrl;
 
       if (res.ok && invoiceUrl && String(invoiceUrl).startsWith("http")) {
+        stopPaymentProcessing();
         window.location.assign(String(invoiceUrl));
         return;
       }
@@ -588,7 +600,7 @@ export default function App() {
       console.error("[Crypto NOWPayments] Error reason:", err?.message || err);
       alert("Не удалось создать оплату. Попробуйте ещё раз.");
     } finally {
-      setCardPaymentLoading(false);
+      stopPaymentProcessing();
     }
   }
 
@@ -597,6 +609,7 @@ export default function App() {
   }
 
   function handleProceedToPayment() {
+    if (cardPaymentLoading) return;
     if (!selectedMethod || !validateOrderFields()) return;
     switch (selectedMethod) {
       case "card_international":
@@ -2403,14 +2416,18 @@ PUBG ID: ${pubgID || "—"}
                         className="hover-lift hover-glow"
                         style={styles.payProceedBtn(payProceedEnabled)}
                         disabled={!selectedMethod || cardPaymentLoading || !isCryptoEligible}
+                        aria-busy={cardPaymentLoading}
                         onClick={handleProceedToPayment}
                       >
-                        {cardPaymentLoading
-                          ? "Обработка..."
-                          : selectedMethod === "crypto_nowpayments"
-                            ? "Оплатить криптовалютой"
-                            : "Перейти к оплате"}
+                        {selectedMethod === "crypto_nowpayments"
+                          ? "Оплатить криптовалютой"
+                          : "Перейти к оплате"}
                       </button>
+
+                      <ProcessingState
+                        isProcessing={cardPaymentLoading}
+                        attemptKey={processingAttempt}
+                      />
                     </div>
                   </div>
                 </div>
