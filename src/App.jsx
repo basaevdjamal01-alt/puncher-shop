@@ -7,11 +7,11 @@ const TON_PRICE_API =
   "https://api.coingecko.com/api/v3/simple/price?ids=the-open-network&vs_currencies=usd";
 const FALLBACK_TON_USD = 5;
 
+const API_URL = (import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
+
 function paymentApiUrl(path) {
   const p = path.startsWith("/") ? path : `/${path}`;
-  // Always use relative URLs so Vite's proxy forwards to the backend port
-  // chosen at runtime (prevents hardcoding `:3001`).
-  return p;
+  return API_URL ? `${API_URL}${p}` : p;
 }
 
 function TelegramIcon() {
@@ -854,15 +854,15 @@ export default function App() {
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
-      fontSize: 10,
+      fontSize: 9.5,
       lineHeight: "16px",
-      opacity: 0.55,
+      opacity: 0.48,
       borderRadius: 999,
       background: "rgba(0,0,0,0.30)",
       border: "1px solid rgba(255,255,255,0.09)",
       boxShadow: "inset 0 1px 0 rgba(255,255,255,0.05)",
-      filter: "grayscale(1) saturate(0.2) brightness(1.18)",
-      transform: "translateY(-0.5px)",
+      filter: "grayscale(1) saturate(0.15) brightness(1.22) contrast(1.05)",
+      transform: "translateY(-0.45px)",
     },
     heroStatLabel: {
       fontSize: 9,
